@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:s3="http://www.mulesoft.org/schema/mule/s3"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/current/mule-s3.xsd">
+	<flow name="post:\document:application\json:aws-sapi-config">
+        <set-variable value="#[attributes.headers.'x-correlation-id' default &quot;&quot;]" doc:name="Set correlationId" doc:id="44e7bbf0-6f2c-47a9-87f8-7496c6c0ddeb" variableName="correlationId" />
+		<logger level="INFO" doc:name="Start Log" doc:id="d952703c-6885-46e9-ae37-047669cda048" message='transactionID: #[vars.transactionId]], correlationID: #[vars.correlationID], message: "Started upload document to amazon S3 flow"' />
+		<ee:transform doc:name="Transform Base64 And Set inputPayload" doc:id="efc6cc34-5846-4c57-8a58-d77e9f7d0331" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+import fromBase64 from dw::core::Binaries
+output application/octet-stream
+---
+fromBase64(payload.document)]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="keyPath" ><![CDATA[payload.folderPath as String ++ "/" ++ payload.fileName as String]]></ee:set-variable>
+				<ee:set-variable variableName="bucketName" ><![CDATA[payload.bucketName]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+<!-- 		<flow-ref doc:name="upload-s3-document" doc:id="df5557e0-72c5-47b9-bf90-eb1df5fa0ea3" name="upload-s3-document" />
+ -->		<flow-ref doc:name="upload-s3-document" doc:id="a2916e28-994b-41c9-a22d-1ece73b77716" name="upload-s3-document"/>
+		<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd" doc:name="Set Response">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	code: 200,
+	message: "Success",
+	description: "Document uploaded successfully",
+	dateTime: now() as String { format: "yyyy-MM-dd'T'HH:mm:ss'Z'" },
+	transactionId: vars.transactionId
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+		<logger level="INFO" doc:name="End Log" doc:id="d66e7d59-8ed0-495f-9eab-e560f946063b" message='transactionID: #[vars.transactionId]], correlationID: #[vars.correlationID], message: Completed upload document to amazon S3 flow, payload: #[payload]"' />
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="f556e5da-49c6-466f-b921-2427e2a5ed47" type="ANY">
+				<set-variable value="#[500]" doc:name="Set HTTP Status - 500" doc:id="eed15cb3-51cf-42a8-bf61-e824330d8c28" variableName="httpStatus" />
+				<set-variable value="Internal server error" doc:name="Set errorMessage" doc:id="af011973-3262-4b9e-bb6e-a9c0f642b20b" variableName="errorMessage" />
+				<set-variable value="#[error.description]" doc:name="Set errorDescription" doc:id="57c06d2b-3032-42f9-abce-54ce3b6192d8" variableName="errorDescription" />
+				<flow-ref doc:name="global-prepare-error-response-sub-flow" doc:id="a037d323-cb98-4d4a-9768-1f24cb936a6b" name="global-prepare-error-response-sub-flow" />
+			</on-error-continue>
+		</error-handler>
+    
+</flow>
+	</mule>

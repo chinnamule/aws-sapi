@@ -1,0 +1,50 @@
+#%RAML 1.0 Library
+usage: Tyoes for aws-sapi
+types:
+  upload-document-request-type:
+    type: object
+    description: This type used to upload document request
+    properties:
+      bucketName: 
+        type: string
+        required: true
+        example: "uho-covid-docs"
+      folderPath: 
+        type: string
+        required: true
+        example: "identity"
+      fileName: 
+        type: string
+        required: true
+        example: "35653.png"
+      document: 
+        type: string
+        required: true
+        example: "iVBORw0KGgoAAAANSUhEUgAAAOIAAACRCAYAAADepmS4AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjw"
+  upload-document-response-type:
+    description: This type used to respond back the status of upload document request
+    type: object
+    properties:
+      code:
+        type: integer
+        description: status code
+        required: true 
+      message:
+        description: A human readable message that describes the status
+        type: string
+        required: true
+      description:
+        description: A human readable, comprehensive explanation of the status
+        type: string
+        required: false
+      dateTime:
+        description: The date-time stamp of the response
+        type: datetime
+        required: true
+      transactionId:
+        description: Internal identifier of the transaction
+        type: string
+        required: true
+      
+      
+      
